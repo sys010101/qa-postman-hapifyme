@@ -22,10 +22,10 @@ Postman homework for the HapifyMe HTTP API user lifecycle flow.
 3. Select `HapifyMe Tema Env`.
 4. Run the full `Tema 18 - Radu` collection in order.
 
-The environment uses the required homework value for `baseUrl`:
+The environment uses the currently reachable HapifyMe API URL:
 
 ```text
-https://test.hapifyme.com/api
+http://apps.qualiadept.eu/hapifyme/api
 ```
 
 The collection scripts generate runtime values automatically, so no real sensitive data is stored in the exported environment.
