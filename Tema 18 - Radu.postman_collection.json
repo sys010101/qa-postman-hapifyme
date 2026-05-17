@@ -1,0 +1,244 @@
+{
+  "info": {
+    "_postman_id": "5ad91b4a-f41b-4cb5-9d2b-5ab7aa75f6bb",
+    "name": "Tema 18 - Radu",
+    "description": "Postman collection for the HTTP and Postman homework. It automates the HapifyMe user lifecycle: dynamic registration, login chaining, profile validation, and account deletion.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Register dynamic user",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Generate unique test data before each registration run.",
+              "const timestamp = Date.now();",
+              "const email = `postman.radu.${timestamp}@example.com`;",
+              "const password = `StrongPass${timestamp}!`;",
+              "",
+              "pm.environment.set('generatedEmail', email);",
+              "pm.environment.set('firstName', 'Radu');",
+              "pm.environment.set('lastName', `Postman${timestamp}`);",
+              "pm.environment.set('password', password);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Validate registration and store chained values for the next requests.",
+              "pm.test('Registration returns 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "",
+              "pm.test('Registration response is successful', function () {",
+              "    pm.expect(response.status).to.eql('success');",
+              "    pm.expect(response.api_key).to.be.a('string').and.not.empty;",
+              "    pm.expect(response.username).to.be.a('string').and.not.empty;",
+              "    pm.expect(response.user_id.toString()).to.not.be.empty;",
+              "});",
+              "",
+              "pm.environment.set('apiKey', response.api_key);",
+              "pm.environment.set('confirmationToken', response.confirmation_token);",
+              "pm.environment.set('username', response.username);",
+              "pm.environment.set('userId', response.user_id.toString());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"first_name\": \"{{firstName}}\",\n  \"last_name\": \"{{lastName}}\",\n  \"email\": \"{{generatedEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user/register.php",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user",
+            "register.php"
+          ]
+        },
+        "description": "Registers a new user with dynamic data generated in the Pre-request Script."
+      },
+      "response": []
+    },
+    {
+      "name": "02 - Login and store token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Validate login and store the JWT for authorized requests.",
+              "pm.test('Login returns 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "",
+              "pm.test('Login response contains token and user data', function () {",
+              "    pm.expect(response.status).to.eql('success');",
+              "    pm.expect(response.token).to.be.a('string').and.not.empty;",
+              "    pm.expect(response.user.id.toString()).to.eql(pm.environment.get('userId'));",
+              "    pm.expect(response.user.email).to.eql(pm.environment.get('generatedEmail'));",
+              "});",
+              "",
+              "pm.environment.set('token', response.token);",
+              "pm.environment.set('userId', response.user.id.toString());",
+              "pm.environment.set('username', response.user.username);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{generatedEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/user/login.php",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user",
+            "login.php"
+          ]
+        },
+        "description": "Logs in with the account created by the previous request. HapifyMe authenticates with the generated username returned by registration, and the test validates that the login response email matches the generated email."
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Get profile and validate email",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Validate that the retrieved profile belongs to the dynamically registered user.",
+              "pm.test('Get profile returns 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "",
+              "pm.test('Profile email matches generated email', function () {",
+              "    pm.expect(response.status).to.eql('success');",
+              "    pm.expect(response.user.id.toString()).to.eql(pm.environment.get('userId'));",
+              "    pm.expect(response.user.email).to.eql(pm.environment.get('generatedEmail'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{apiKey}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user/get_profile.php?user_id={{userId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user",
+            "get_profile.php"
+          ],
+          "query": [
+            {
+              "key": "user_id",
+              "value": "{{userId}}"
+            }
+          ]
+        },
+        "description": "Retrieves the profile using the API key returned by registration and validates the generated email."
+      },
+      "response": []
+    },
+    {
+      "name": "04 - Delete profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Validate cleanup so the test user lifecycle ends with account deletion.",
+              "pm.test('Delete profile returns 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "",
+              "pm.test('Delete profile response is successful', function () {",
+              "    pm.expect(response.status).to.eql('success');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/user/delete_profile.php",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "user",
+            "delete_profile.php"
+          ]
+        },
+        "description": "Deletes the account using the Bearer token saved after login."
+      },
+      "response": []
+    }
+  ]
+}
